@@ -6,8 +6,8 @@ class Network:
     def __init__(self, sizes):
         """Sets up:
         layer_num - number of layers of a network.
-        sizes     - list of sizes of a network's layers.
-        weights   - list containing arrays of weights between every two layers.
+        sizes - list of sizes of a network's layers.
+        weights - list containing arrays of weights between every two layers.
             Each element of the list contains weights connecting every neuron 
             in the previous layer with each neuron in the next layer.
             Example: 
@@ -36,8 +36,10 @@ class Network:
            activation = sigmoid(np.dot(w, activation) + b) # ogarnac jak to sie dzieje, ze wymiar sie zgadza
         return activation
     
-    def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None): # po co test_data dokladnie
-        """Opisac co dokladnie to robi. Stochastic gradient descent with mini-batches"""
+    def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
+        """Randomly shuffles the training data and divides it into mini_batches, each of mini_batch_size.
+        Computes a gradient descent step using backprop according to the mini_batch.
+        training_data - list of (x, y) tuples, where x is the training input and y is the desired output"""
         #...
         #...
         n = len(training_data)
@@ -49,10 +51,34 @@ class Network:
                 self.update_mini_batch_GD_step(mini_batch, learning_rate)
             print(f"Epoch {i+1} complete")
 
-    def update_mini_batch_GD_step(self, batch, learning_rate): # learning rate ogarnac gdzie sie uzywa dokladnie tutaj
-        """Obejrzec 3b1b dokladnie ostatni odcinek jak to bylo z tym"""
+    def update_mini_batch_GD_step(self, mini_batch, learning_rate): # learning rate ogarnac gdzie sie uzywa dokladnie tutaj
+        """Updates the network's weights and biases by applying gradient descent using backpropagation
+        to a single mini_batch (gradient descent step)."""
+        for x, y in mini_batch:
+            pass
         pass
 
+    def backprop(self, x, y):
+        """backpropagation"""
+        weight_derivatives = [np.zeros(w.shape) for w in self.weights]
+        bias_derivatives = [np.zeros(b.shape) for b in self.biases]
+
+        # feedforward
+        # nie lepiej dac to do funkcji feedforward?!?!
+        activation = x
+        activations = [x] # list representing all the activation vectors layer by layer
+        zs = [] # list representing all z vectors (activations before applying sigmoid) layer by layer
+        for w, b in zip(self.weights, self.biases):
+            z = np.dot(w, activation) + b
+            zs.append(z)
+            activation = sigmoid(z)
+            activations.append(activation)
+
+        # backward pass
+        for layer in range(self.layer_num, 2, -1):
+            z = zs[layer]
+            a = sigmoid_d(z)
+            # przeczytac tekst i ogarnac bo tam jest inaczej niz na filmie!
 
 
 def sigmoid(x):
