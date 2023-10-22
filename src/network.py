@@ -37,18 +37,26 @@ class Network:
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
         
+        # these 2 lists store vectors! column vectors
         self.zs = []
         self.activations = []
     
-    def feedforward_update(self, a):
+    def feedforward_all(self, a):
         """Calculates the output of a neural network based on an input 'a' vector
         Updates all zs and activations calculated during a forward pass"""
         # each loop iteration updates zs and activations in one layer
+        activation = a
+        activations = [a]
+        zs = []
         for w, b in zip(self.weights, self.biases):
            z = np.dot(w, a) + b 
-           self.zs.append(z) # vector of zs of one layer
+           # reshape!!!
+           self.zs.append(np.reshape(z, (len(z), 1))) # vector of zs of one layer
+           #self.zs.append(z) # vector of zs of one layer
            activation = sigmoid(z)
-           self.activations.append(activation) # vector of activations of one layer
+           # reshape!!!
+           self.activations.append(np.reshape(activation, (len(activation), 1))) # vector of activations of one layer
+           #self.activations.append(activation) # vector of activations of one layer
            a = activation
         return (self.zs, self.activations)
 
@@ -58,12 +66,17 @@ class Network:
             a = sigmoid(np.dot(w, a) + b)
         return a
     
-    def SGD_learn(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
+    def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
         """Randomly shuffles the training data and divides it into mini_batches, each of mini_batch_size.
         Computes a gradient descent step using backprop according to the mini_batch.
         training_data - list of (x, y) tuples, where x is the training input and y is the desired output"""
-        #... test data
-        #...
+        
+        if test_data:
+            test_data = list(test_data)
+            n_test = len(test_data)
+            print(f"Before any learning: {self.evaluate(test_data)}/{n_test}")
+
+
         n = len(training_data)
         for i in range(epochs):
             # take random samples of the training data
@@ -71,7 +84,10 @@ class Network:
             mini_batches = [training_data[j:j+mini_batch_size] for j in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch_GD_backprop_step(mini_batch, learning_rate)
-            print(f"Epoch {i+1} complete")
+            if test_data:
+                print(f"Epoch {i+1} complete: {self.evaluate(test_data)}/{n_test}")
+            else:
+                print(f"Epoch {i+1} complete")
 
     def update_mini_batch_GD_backprop_step(self, mini_batch, learning_rate):
             """Updates the network's weights and biases by applying gradient descent using backpropagation
@@ -84,8 +100,9 @@ class Network:
                 w_step = [w + dw for w, dw in zip(w_step, DC_Dw_vect)]
                 b_step = [b + db for b, db in zip(b_step, DC_Db_vect)]
             # jak to sie dzieje ze sie wymiary zgadzaja??
-            self.weights = [w - dw * learning_rate/len(mini_batch) for w, dw in zip(self.weights, w_step)] 
-            self.biases = [b - db * learning_rate/len(mini_batch) for b, db in zip(self.biases, b_step)]
+            # why minus? bo liczymy gradient a tutaj ma byc minus gradient??
+            self.weights = [w - (dw * (learning_rate/len(mini_batch))) for w, dw in zip(self.weights, w_step)] 
+            self.biases = [b - (db * (learning_rate/len(mini_batch))) for b, db in zip(self.biases, b_step)]
 
     def backprop_compute_gradient(self, x, y):
         """backpropagation"""
@@ -97,8 +114,17 @@ class Network:
 
         # feedforward, updates zs and activations
         # ale pomieszane, jeszcze appendowanie tego x...
-        self.activations.append(x)
-        self.feedforward_update(x)
+        # self.activations.append(x)
+        # self.feedforward_update(x)
+        activations, zs = self.feedforward_all(x)
+        activation = x
+        activations = [x]
+        zs = []
+        for w, b in zip(self.weights, self.biases):
+            z = np.dot(w, activation) + b
+            zs.append(z)
+            activation = sigmoid(z)
+            activations.append(activation)
 
         # co z costem? nigdzie sie tego nie uzywa? ale no jak...
         # OK - uzywa sie przeciez!!! jako DC_Da!
@@ -107,31 +133,35 @@ class Network:
         # pochodne z chain rule
         # tez poogaraniac te wymiary jak to sie udaje XD
         # COST DERIVATIVE!!!
-        DC_Da = 2 * (self.activations[-1] - y)
-        Da_Dz = sigmoid_d(self.zs[-1])
+        DC_Da = 2 * (activations[-1] - y)
+        Da_Dz = sigmoid_d(zs[-1])
 
-        common_DC_factor = Da_Dz * DC_Da
+        common_DC_factor = DC_Da * Da_Dz
         DC_Db_vect[-1] = common_DC_factor
-        DC_Dw_vect[-1] = np.dot(self.activations[-2], common_DC_factor) # transpozycja tutaj?
+        DC_Dw_vect[-1] = np.dot(common_DC_factor, activations[-2].transpose()) # transpozycja tutaj?
 
 
         # backward pass
         # begin with SECOND TO LAST layer and go backwards till layer 2 is reached
         for l in range(2, self.layer_num):
-            z = self.zs[-l]
+            z = zs[-l]
             Da_Dz_hidden = sigmoid_d(z)
             # ogarnac wymiary!
             # i jakies transpozycje tutaj!?
-            common_DC_factor = np.dot(self.weights[-1], common_DC_factor) * Da_Dz_hidden
-            DC_Dw_vect[-l] = np.dot(self.activations[-l-1], common_DC_factor)
+            common_DC_factor = np.dot(self.weights[-l+1].transpose(), common_DC_factor) * Da_Dz_hidden
             DC_Db_vect[-l] = common_DC_factor # * 1 = Dz_Db
+            DC_Dw_vect[-l] = np.dot(common_DC_factor, activations[-l-1].transpose())
 
         return DC_Dw_vect, DC_Db_vect
 
     def evaluate(self, test_data):
         # zmienic feedforward na feedforward ale taki bez modyfikacji
-        test_results = [(np.argmax(self.feedforward_output(x)), y) for x, y in test_data]
-        return sum(int(x == y) for x, y in test_results)
+        test_results = [(np.argmax(self.feedforward_output(x)), y) for (x, y) in test_data]
+        return sum(int(x == y) for (x, y) in test_results)
+    
+    def classify_digit(self, pixels):
+        # podac pixele tutaj
+        return np.argmax(self.feedforward_output(pixels))
 
             
 def sigmoid(x):

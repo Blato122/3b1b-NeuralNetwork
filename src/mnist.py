@@ -13,7 +13,7 @@ def load_internal():
 
 def load():
     tr_d, va_d, te_d = load_internal()
-    
+
     # creates a list of 2d, 784 by 1 numpy arrays 
     training_inputs = [np.reshape(x, (784, 1)) for x in tr_d[0]]
     # creates a list of 2d, 10 by 1 numpy arrays
@@ -26,11 +26,11 @@ def load():
     validation_inputs = [np.reshape(x, (784, 1)) for x in va_d[0]]
     validation_data = zip(validation_inputs, va_d[1])
     test_inputs = [np.reshape(x, (784, 1)) for x in te_d[0]]
-    test_data = zip(test_inputs, va_d[1])
+    test_data = zip(test_inputs, te_d[1])
 
     return (training_data, validation_data, test_data)
 
 def output_to_vector(idx):
     v = np.zeros((10, 1))
-    v[idx] = 1
+    v[idx] = 1.0
     return v
