@@ -7,25 +7,25 @@ if __name__ == "__main__":
     training_data, validation_data, test_data = mnist.load()
     training_data = list(training_data)
     test_data = list(test_data)
-    net = network.Network([784, 40, 10])
-    net.SGD(training_data, 5, 20, 2.0, test_data=test_data)
+    net = network.Network([784, 30, 10])
+    net.SGD(training_data, 5, 20, 3.0, test_data=test_data) #xentr parameter
     input("Learning finished. Press any key to start testing")
 
     print("\nTesting:\n")
-    digits = [x for (x, y) in test_data[:10]]
+    digits = [x for (x, y) in test_data[:3]]
     for i, digit_img in enumerate(digits):
         name = f"img{i}"
         print(name)
         image.create_image(digit_img, 28, 28, name)
         image.display_image_terminal(name, 56)
-        digit_guess = net.classify_digit(digit_img)
-        print(f"I think img{i} is a {digit_guess}")
+        digit_guess, activations = net.classify_digit(digit_img)
+        print(f"I think img{i} is a {digit_guess}: {activations}")
         input("Press any key to continue\n")
 
-    pixels = image.image_to_grayscale("../data/MNIST_6_0.png")
-    image.display_image_terminal("MNIST_6_0", 56)
-    guess = net.classify_digit(pixels)
-    print(f"I think it is a {guess}")
+    pixels = image.image_to_grayscale("my_digit_3")
+    image.display_image_terminal("my_digit_3", 56)
+    guess, acts = net.classify_digit(pixels)
+    print(f"I think it is a {guess}: {acts}")
 
 
 

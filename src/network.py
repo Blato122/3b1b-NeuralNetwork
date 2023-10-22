@@ -36,32 +36,24 @@ class Network:
         # from the previous layer to the y-th neuron on the next layer.
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        
-        # these 2 lists store vectors! column vectors
-        self.zs = []
-        self.activations = []
     
     def feedforward_all(self, a):
-        """Calculates the output of a neural network based on an input 'a' vector
-        Updates all zs and activations calculated during a forward pass"""
-        # each loop iteration updates zs and activations in one layer
+        """Calculates all zs and activations of all the neurons based on an input
+        'a' vector."""
         activation = a
         activations = [a]
         zs = []
         for w, b in zip(self.weights, self.biases):
            z = np.dot(w, a) + b 
-           # reshape!!!
-           self.zs.append(np.reshape(z, (len(z), 1))) # vector of zs of one layer
-           #self.zs.append(z) # vector of zs of one layer
+           zs.append(z) # vector of zs of one layer
            activation = sigmoid(z)
-           # reshape!!!
-           self.activations.append(np.reshape(activation, (len(activation), 1))) # vector of activations of one layer
-           #self.activations.append(activation) # vector of activations of one layer
+           activations.append(activation) # vector of activations of one layer
            a = activation
-        return (self.zs, self.activations)
+        return (activations, zs)
 
     def feedforward_output(self, a):
-        """ Only calculates the output of a neural network based on an input 'a' vector"""
+        """ Only calculates the output of a neural network (i.e. activations
+        of neurons is the last layer) based on an input 'a' vector"""
         for w, b in zip(self.weights, self.biases):
             a = sigmoid(np.dot(w, a) + b)
         return a
@@ -75,7 +67,6 @@ class Network:
             test_data = list(test_data)
             n_test = len(test_data)
             print(f"Before any learning: {self.evaluate(test_data)}/{n_test}")
-
 
         n = len(training_data)
         for i in range(epochs):
@@ -93,14 +84,16 @@ class Network:
             """Updates the network's weights and biases by applying gradient descent using backpropagation
             to a single mini_batch (gradient descent step)."""
 
+            # same size as weight and biases and also DC_Dw_vect and DC_Db_vect
             w_step = [np.zeros(w.shape) for w in self.weights]
             b_step = [np.zeros(b.shape) for b in self.biases]
             for x, y in mini_batch:
-                DC_Dw_vect, DC_Db_vect = self.backprop_compute_gradient(x, y) # zla nazwa, to juz sa wektory liczb!!?
+                DC_Dw_vect, DC_Db_vect = self.backprop_compute_gradient(x, y)
                 w_step = [w + dw for w, dw in zip(w_step, DC_Dw_vect)]
                 b_step = [b + db for b, db in zip(b_step, DC_Db_vect)]
-            # jak to sie dzieje ze sie wymiary zgadzaja??
-            # why minus? bo liczymy gradient a tutaj ma byc minus gradient??
+    # jak to sie dzieje ze sie wymiary zgadzaja??
+            # minus because we have to move in the negative gradient direction
+            # but we calculated (normal) gradient of the cost function
             self.weights = [w - (dw * (learning_rate/len(mini_batch))) for w, dw in zip(self.weights, w_step)] 
             self.biases = [b - (db * (learning_rate/len(mini_batch))) for b, db in zip(self.biases, b_step)]
 
@@ -112,25 +105,11 @@ class Network:
         DC_Dw_vect = [np.zeros(w.shape) for w in self.weights]
         DC_Db_vect = [np.zeros(b.shape) for b in self.biases]
 
-        # feedforward, updates zs and activations
-        # ale pomieszane, jeszcze appendowanie tego x...
-        # self.activations.append(x)
-        # self.feedforward_update(x)
+        # feedforward
         activations, zs = self.feedforward_all(x)
-        activation = x
-        activations = [x]
-        zs = []
-        for w, b in zip(self.weights, self.biases):
-            z = np.dot(w, activation) + b
-            zs.append(z)
-            activation = sigmoid(z)
-            activations.append(activation)
 
-        # co z costem? nigdzie sie tego nie uzywa? ale no jak...
-        # OK - uzywa sie przeciez!!! jako DC_Da!
-        # cost = (self.activations[-1] - y)**2
 
-        # pochodne z chain rule
+        # chain rule derivatives
         # tez poogaraniac te wymiary jak to sie udaje XD
         # COST DERIVATIVE!!!
         DC_Da = 2 * (activations[-1] - y)
@@ -138,7 +117,8 @@ class Network:
 
         common_DC_factor = DC_Da * Da_Dz
         DC_Db_vect[-1] = common_DC_factor
-        DC_Dw_vect[-1] = np.dot(common_DC_factor, activations[-2].transpose()) # transpozycja tutaj?
+        # why transpose?
+        DC_Dw_vect[-1] = np.dot(common_DC_factor, activations[-2].transpose())
 
 
         # backward pass
@@ -155,17 +135,27 @@ class Network:
         return DC_Dw_vect, DC_Db_vect
 
     def evaluate(self, test_data):
-        # zmienic feedforward na feedforward ale taki bez modyfikacji
         test_results = [(np.argmax(self.feedforward_output(x)), y) for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
     
     def classify_digit(self, pixels):
-        # podac pixele tutaj
-        return np.argmax(self.feedforward_output(pixels))
+        results = self.feedforward_output(pixels)
+        return (np.argmax(results), sigmoid(results))
+    
 
-            
+
+def sse_cost_derivative(a, y):
+    """Derivative of the mean squared error cost function.
+    cost = (self.activations[-1] - y)**2
+    cost_derivative = 2 * (a - y)"""
+
+    return 2 * (a - y)
+
+def cross_entropy_cost_derivative():
+    pass
+       
 def sigmoid(x):
-    """The sigmoid function."""
+    """Sigmoid function."""
     return 1.0 / (1.0 + np.exp(-x))
 
 def sigmoid_d(x):
