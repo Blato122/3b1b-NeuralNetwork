@@ -22,6 +22,13 @@ if __name__ == "__main__":
         print(f"I think img{i} is a {digit_guess}")
         input("Press any key to continue\n")
 
+    pixels = image.image_to_grayscale("../data/MNIST_6_0.png")
+    image.display_image_terminal("MNIST_6_0", 56)
+    guess = net.classify_digit(pixels)
+    print(f"I think it is a {guess}")
+
+
+
 
         
 # to do:

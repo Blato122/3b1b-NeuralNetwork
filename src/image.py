@@ -16,5 +16,7 @@ def display_image_terminal(name, width):
 
 def image_to_grayscale(name):
     path = f"../imgs/{name}.png"
-    pixels = Image.open(path).convert(mode="L")
+    img = Image.open(path).convert(mode="L")
+    pixels = np.array(img)
     pixels = np.reshape(pixels, (784, 1))
+    return pixels
