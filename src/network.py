@@ -13,12 +13,24 @@ OUTPUT_N: Final[int] = 10
 # ZAPISAC TO WSZYSTKO ZANIM ZAPOMNE!!! W README LUB KOMENTARZU!!!
 # to z pochodna costu, to z suma po poprzednich layerach itd.
 
-def load():
-    pass
+def load(name="my_network"):
+    with open(f"../saves/{name}.json", "r") as f:
+            data = json.load(f)
+            cost = data["cost"]
+            net = Network(data["sizes"], cost=cost) # does that work??
+            net.weights = [np.array(w) for w in data["weights"]]
+            net.biases = [np.array(b) for b in data["biases"]]
+            return net
 
 class Network:
-    def save(self):
-        pass
+    def save(self, name="my_network"):
+        data = {"sizes": self.sizes,
+                "weights": [w.tolist() for w in self.weights],
+                "biases": [b.tolist() for b in self.biases],
+                "cost": self.cost.__name__}
+
+        with open(f"../saves/{name}.json", "w+") as f:
+            json.dump(data, f)
 
     def __init__(self, sizes, cost=utils.SSECost):
         """Sets up:
@@ -74,6 +86,8 @@ class Network:
         Computes a gradient descent step using backprop according to the mini_batch.
         training_data - list of (x, y) tuples, where x is the training input and y is the desired output"""
         
+        lr = learning_rate
+
         if test_data:
             test_data = list(test_data)
             n_test = len(test_data)
@@ -85,11 +99,13 @@ class Network:
             random.shuffle(training_data)
             mini_batches = [training_data[j:j+mini_batch_size] for j in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
-                self.update_mini_batch_GD_backprop_step(mini_batch, learning_rate)
+                self.update_mini_batch_GD_backprop_step(mini_batch, lr)
             if test_data:
-                print(f"Epoch {i+1} complete: {self.evaluate(test_data)}/{n_test}")
+                print(f"Epoch {i+1} complete: {self.evaluate(test_data)}/{n_test}") # type: ignore
             else:
                 print(f"Epoch {i+1} complete")
+            # inverse square root schedule
+            lr = learning_rate / np.sqrt(i+1)
 
     def update_mini_batch_GD_backprop_step(self, mini_batch, learning_rate):
             """Updates the network's weights and biases by applying gradient descent using backpropagation
@@ -122,11 +138,9 @@ class Network:
         activations, zs = self.feedforward_all(x)
 
         # chain rule derivatives
-        # tez poogaraniac te wymiary jak to sie udaje XD
-        # COST DERIVATIVE!!!
+
         # DC_Da = self.cost.DC_Da(activations[-1], y)
         # Da_Dz = sigmoid_d(zs[-1])
-
         # common_DC_factor = DC_Da * Da_Dz
 
         common_DC_factor = self.cost.DC_Da__Da_Dz(activations[-1], y, zs[-1])

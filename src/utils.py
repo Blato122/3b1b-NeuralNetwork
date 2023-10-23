@@ -12,10 +12,12 @@ def sigmoid_d(x):
 
 
 class SSECost:
-    """Sum of squared errors. Formula: sum((a[i] - y[i]) ** 2)"""
+    """Sum of squared errors."""
     @staticmethod
     def f(a, y):
-        return np.linalg.norm(a-y)**2 # ||a - y|| = sqrt(sum((ai - yi)^2))
+        # return np.linalg.norm(a-y)**2 # ||a - y|| = sqrt(sum((ai - yi)^2))
+        # return
+        return np.sum(a - y)**2 # ?
 
     # @staticmethod
     # def DC_Da(a, y):
@@ -26,7 +28,7 @@ class SSECost:
         return (a - y) * sigmoid_d(z)
 
 class CrossEntropyCost:
-    """Cross entropy. Formula: """
+    """Cross entropy."""
     @staticmethod
     def f(a, y):
         return np.sum(np.nan_to_num(-y*np.log(a) - (1-y)*np.log(1-a)))
