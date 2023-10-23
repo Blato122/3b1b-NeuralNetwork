@@ -1,15 +1,26 @@
 import random
 import numpy as np
+from typing import Final
+import json
+import utils
 
-"""make this more in OOP style!
-layer class maybe
-gradient function
-neuron as a class also???
-zestaw 5 python klasy moze pomoze"""
+
+WIDTH: Final[int] = 28
+HEIGHT: Final[int] = 28
+INPUT_N: Final[int] = WIDTH * HEIGHT # 784
+OUTPUT_N: Final[int] = 10
+
+# ZAPISAC TO WSZYSTKO ZANIM ZAPOMNE!!! W README LUB KOMENTARZU!!!
+# to z pochodna costu, to z suma po poprzednich layerach itd.
+
+def load():
+    pass
 
 class Network:
+    def save(self):
+        pass
 
-    def __init__(self, sizes):
+    def __init__(self, sizes, cost=utils.SSECost):
         """Sets up:
         layer_num - number of layers of a network.
         sizes - list of sizes of a network's layers.
@@ -26,7 +37,6 @@ class Network:
         biases - list containing biases in each layer except for the first
             one (the input layer).
         """
-        # klasa layer potem? a moze nawet neuron ale nwm
         self.layer_num = len(sizes)
         self.sizes = sizes
         # randn() -> generates samples from the Standard Normal (aka. Gaussian) distribution (mean 0 and variance 1)
@@ -36,9 +46,10 @@ class Network:
         # from the previous layer to the y-th neuron on the next layer.
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        self.cost = cost
     
     def feedforward_all(self, a):
-        """Calculates all zs and activations of all the neurons based on an input
+        """Calculates zs and activations of all the neurons based on an input
         'a' vector."""
         activation = a
         activations = [a]
@@ -46,16 +57,16 @@ class Network:
         for w, b in zip(self.weights, self.biases):
            z = np.dot(w, a) + b 
            zs.append(z) # vector of zs of one layer
-           activation = sigmoid(z)
+           activation = utils.sigmoid(z)
            activations.append(activation) # vector of activations of one layer
            a = activation
         return (activations, zs)
 
     def feedforward_output(self, a):
-        """ Only calculates the output of a neural network (i.e. activations
+        """Calculates the output of a neural network (i.e. activations
         of neurons is the last layer) based on an input 'a' vector"""
         for w, b in zip(self.weights, self.biases):
-            a = sigmoid(np.dot(w, a) + b)
+            a = utils.sigmoid(np.dot(w, a) + b)
         return a
     
     def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
@@ -94,12 +105,14 @@ class Network:
     # jak to sie dzieje ze sie wymiary zgadzaja??
             # minus because we have to move in the negative gradient direction
             # but we calculated (normal) gradient of the cost function
+            # divided by the number of data instances in a mini_batch because
+    # total cost function is an average of all costs (HUH?)
             self.weights = [w - (dw * (learning_rate/len(mini_batch))) for w, dw in zip(self.weights, w_step)] 
             self.biases = [b - (db * (learning_rate/len(mini_batch))) for b, db in zip(self.biases, b_step)]
 
     def backprop_compute_gradient(self, x, y):
         """backpropagation"""
-        # same shape as weights and biases so that its easy to
+        # same shape as weights and biases so that it's easy to
         # perform a gradient step, i.e. nudge all weights and
         # biases 
         DC_Dw_vect = [np.zeros(w.shape) for w in self.weights]
@@ -108,14 +121,15 @@ class Network:
         # feedforward
         activations, zs = self.feedforward_all(x)
 
-
         # chain rule derivatives
         # tez poogaraniac te wymiary jak to sie udaje XD
         # COST DERIVATIVE!!!
-        DC_Da = 2 * (activations[-1] - y)
-        Da_Dz = sigmoid_d(zs[-1])
+        # DC_Da = self.cost.DC_Da(activations[-1], y)
+        # Da_Dz = sigmoid_d(zs[-1])
 
-        common_DC_factor = DC_Da * Da_Dz
+        # common_DC_factor = DC_Da * Da_Dz
+
+        common_DC_factor = self.cost.DC_Da__Da_Dz(activations[-1], y, zs[-1])
         DC_Db_vect[-1] = common_DC_factor
         # why transpose?
         DC_Dw_vect[-1] = np.dot(common_DC_factor, activations[-2].transpose())
@@ -125,7 +139,7 @@ class Network:
         # begin with SECOND TO LAST layer and go backwards till layer 2 is reached
         for l in range(2, self.layer_num):
             z = zs[-l]
-            Da_Dz_hidden = sigmoid_d(z)
+            Da_Dz_hidden = utils.sigmoid_d(z)
             # ogarnac wymiary!
             # i jakies transpozycje tutaj!?
             common_DC_factor = np.dot(self.weights[-l+1].transpose(), common_DC_factor) * Da_Dz_hidden
@@ -140,24 +154,4 @@ class Network:
     
     def classify_digit(self, pixels):
         results = self.feedforward_output(pixels)
-        return (np.argmax(results), sigmoid(results))
-    
-
-
-def sse_cost_derivative(a, y):
-    """Derivative of the mean squared error cost function.
-    cost = (self.activations[-1] - y)**2
-    cost_derivative = 2 * (a - y)"""
-
-    return 2 * (a - y)
-
-def cross_entropy_cost_derivative():
-    pass
-       
-def sigmoid(x):
-    """Sigmoid function."""
-    return 1.0 / (1.0 + np.exp(-x))
-
-def sigmoid_d(x):
-    """Derivative of the sigmoid function."""
-    return sigmoid(x) * (1 - sigmoid(x))
+        return (np.argmax(results), results)
