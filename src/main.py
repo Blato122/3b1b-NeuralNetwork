@@ -28,7 +28,7 @@ if __name__ == "__main__":
         print(f"I think img{i} is a(n) {digit_guess}:\n {activations}")
         input("Press any key to continue\n")
 
-    net.save()
+    # net.save()
 
 # to do:
 # cost function ogarnac
